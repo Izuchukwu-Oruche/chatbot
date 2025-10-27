@@ -8,6 +8,12 @@ VERIFY_TOKEN      = os.environ["VERIFY_TOKEN"]
 BEDROCK_REGION    = os.getenv("BEDROCK_REGION","us-east-1")
 MODEL_ID          = os.getenv("BEDROCK_MODEL_ID","us.anthropic.claude-3-5-haiku-20241022-v1:0")
 # SYSTEM_PROMPT     = os.environ["SYSTEM_PROMPT"]
+SESSIONS_TABLE = os.environ["SESSIONS_TABLE"]
+BANK_API_BASE = os.getenv("BANK_API_BASE","")
+BANK_API_TOKEN = os.getenv("BANK_API_TOKEN","")
+
+dynamodb = boto3.resource("dynamodb")
+table = dynamodb.Table(SESSIONS_TABLE)
 
 
 s3 = boto3.client("s3")
@@ -19,7 +25,7 @@ if CFG is None:
         "Key": os.environ["CFG_KEY"],
     }
     obj = s3.get_object(**params)
-    body = obj["Body"].read().decode("utf-8")
+    SYSTEM_PROMPT = obj["Body"].read().decode("utf-8")
     
 
 brt = boto3.client("bedrock-runtime", region_name=BEDROCK_REGION)
