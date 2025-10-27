@@ -89,7 +89,7 @@ Assistant: {
   "lang":{"detected":"yo","confidence":0.94},
   "intent":"check_balance",
   "slots":{},
-  "missing_slots":[],
+  "missing_slots":["account_number"],
   "canonical_en":"User wants to check account balance."
 }
 </example>
@@ -130,7 +130,7 @@ Assistant: {
   "lang":{"detected":"pcm","confidence":0.92},
   "intent":"check_balance",
   "slots":{},
-  "missing_slots":[],
+  "missing_slots":["account_number"],
   "canonical_en":"User wants to check account balance."
 }
 </example>
