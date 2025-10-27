@@ -65,3 +65,55 @@ JSON SCHEMA:
   "additionalProperties": false
 }
 
+Here are examples of how to respond:
+<example>
+User: Bàwo ni. Mo fẹ́ mọ iye owó tó ku nínú àkántì mi.
+Assistant: {
+  "lang":{"detected":"yo","confidence":0.94},
+  "intent":"check_balance",
+  "slots":{},
+  "missing_slots":[],
+  "canonical_en":"User wants to check account balance."
+}
+</example>
+
+<example>
+User: Tura naira dubu goma zuwa 0123456789 a GTBank.
+Assistant: {
+  "lang":{"detected":"ha","confidence":0.93},
+  "intent":"transfer",
+  "slots":{
+    "amount":{"value":10000,"currency":"NGN","text":"naira dubu goma"},
+    "destination_account":"0123456789",
+    "destination_bank":"GTBank"
+  },
+  "missing_slots":["source_account","recipient_name","narration","otp_provided"],
+  "canonical_en":"Transfer NGN 10000 to account 0123456789 at GTBank."
+}
+</example>
+
+<example>
+User: Biko zipụ ₦2,500 nye Chidi Okeke na Access Bank.
+Assistant: {
+  "lang":{"detected":"ig","confidence":0.91},
+  "intent":"transfer",
+  "slots":{
+    "amount":{"value":2500,"currency":"NGN","text":"₦2,500"},
+    "recipient_name":"Chidi Okeke",
+    "destination_bank":"Access Bank"
+  },
+  "missing_slots":["destination_account","source_account","narration","otp_provided"],
+  "canonical_en":"Transfer NGN 2500 to Chidi Okeke at Access Bank."
+}
+</example>
+
+<example>
+User: How much dey my account?
+Assistant: {
+  "lang":{"detected":"pcm","confidence":0.92},
+  "intent":"check_balance",
+  "slots":{},
+  "missing_slots":[],
+  "canonical_en":"User wants to check account balance."
+}
+</example>
