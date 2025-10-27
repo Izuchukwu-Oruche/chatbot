@@ -1,5 +1,5 @@
 from config import brt
-from config import MODEL_ID, SYSTEM_PROMPT, body
+from config import MODEL_ID, body
 import re, json
 
 
