@@ -10,7 +10,6 @@ def llm_parse(user_text: str) -> dict:
     )
     out = resp["output"]["message"]["content"][0]["text"].strip()
     out = re.sub(r"^```(?:json)?\s*|\s*```$", "", out, flags=re.DOTALL).strip()
-    # minor repairs
     out = out.replace("\u200b","")
     try:
         return json.loads(out)
@@ -18,7 +17,7 @@ def llm_parse(user_text: str) -> dict:
         s = out.replace("\n"," ")
         s = re.sub(r",\s*}", "}", s); s = re.sub(r",\s*]", "]", s)
         return json.loads(s)
-    
+
 def llm_confirm(lang: str, canonical_en: str, outcome_en: str) -> str:
     """Use a tiny prompt to produce a 1-line confirmation in user's language."""
     sys = (
@@ -35,4 +34,3 @@ def llm_confirm(lang: str, canonical_en: str, outcome_en: str) -> str:
     )
     txt = resp["output"]["message"]["content"][0]["text"].strip()
     return txt
-

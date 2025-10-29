@@ -3,9 +3,6 @@ from config import VERIFY_TOKEN
 from whatsapp_helpers import wa_ok, extract_messages
 from main_logic import handle_text
 
-
-
-
 def lambda_handler(event, context):
     method = event.get("requestContext", {}).get("http", {}).get("method") or event.get("httpMethod","GET")
 

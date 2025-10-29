@@ -1,5 +1,5 @@
 from config import GRAPH_API_VERSION, PHONE_NUMBER_ID, WHATSAPP_TOKEN
-import urllib, json
+import urllib.request, json
 
 def wa_ok(body="OK", status=200):
     return {"statusCode": status, "headers": {"Content-Type":"text/plain"}, "body":body}
@@ -21,4 +21,3 @@ def extract_messages(event_body: dict):
                 if m.get("type") == "text" and "from" in m:
                     msgs.append({"from": m["from"], "text": m["text"]["body"].strip()})
     return msgs
-

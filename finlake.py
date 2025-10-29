@@ -1,399 +1,130 @@
 import time, base64
 import requests
-from typing import TypedDict, List, Optional
+from typing import Optional, Dict, Any
+from config import ACCOUNT_ID, FLK_STAGE, PHONE_COUNTRY_CODE, PHONE_NUMBER
 
-#CREDENTIALS
-PHONE_COUNTRY_CODE = "234"
-PHONE_NUMBER = "9"
-TRANSACTION_PIN = ""
-ACCOUNT_ID = ""
-FLK_STAGE = ""
-
-
-#baseurl
 BASE_URL = "https://api-dev.finlake.tech/mobility"
+TIMEOUT = 15
 
-# Response Models
-class BankInfo(TypedDict):
-    bankCategory: int
-    bankCode: str
-    bankLogoUrl: str
-    bankName: str
-    bankShortName: str
+def _headers(auth_token: Optional[str] = None) -> Dict[str, str]:
+    h = {
+        "Content-Type": "application/json",
+        "X-Account-Id": ACCOUNT_ID or "",
+        "X-Flk-Stage": FLK_STAGE or "dev",
+    }
+    if auth_token:
+        h["Authorization"] = f"Bearer {auth_token}"
+    return h
 
-class BankListResponse(TypedDict):
-    data: List[BankInfo]
-    responseCode: str
-    responseMessage: str
-
-class ApiResponse(TypedDict):
-    data: Optional[dict]
-    responseCode: str
-    responseMessage: str
-
-class AccountInfo(TypedDict):
-    accountBalance: str
-    accountBranchCode: str
-    accountCategory: str
-    accountChecker: str
-    accountClass: str
-    accountCreatedAt: str
-    accountCurrencyCode: str
-    accountCustomerId: str
-    accountDailyCredit: str
-    accountDailyDebit: str
-    accountEndDate: str
-    accountGlLevel2Code: str
-    accountId: int
-    accountInterest: str
-    accountInterestRate: str
-    accountLienAmount: str
-    accountMaker: str
-    accountMonthlyCredit: str
-    accountMonthlyDebit: str
-    accountName: str
-    accountNumber: str
-    accountParent: str
-    accountPenalty: str
-    accountPnd: str
-    accountStatus: str
-    accountSync: str
-    accountSyncAttempt: int
-    accountSyncFailureReason: str
-    accountTotalCredit: str
-    accountTotalDebit: str
-    accountUpdatedAt: str
-
-class TransactionInfo(TypedDict):
-    accountName: str
-    accountNumber: str
-    amount: str
-    contractReference: str
-    counterPartyAccountName: str
-    counterPartyAccountNumber: str
-    counterPartyBank: str
-    counterPartyBankCode: str
-    counterPartyChannel: str
-    counterPartyService: str
-    drCr: str
-    eventDate: str
-    id: str
-    narration: str
-    paymentReference: str
-    responseCode: str
-    responseMessage: str
-    transactionDate: str
-    transactionType: str
-    trnAmount: str
-
-class CustomerByAccountNumberResponse(TypedDict):
-    account: List[AccountInfo]
-    data: List[TransactionInfo]
-    responseCode: str
-    responseMessage: str
-
-class NameEnquiryData(TypedDict):
-    accountCurrencyCode: str
-    accountName: str
-    accountNumber: str
-
-class InternalNameEnquiryResponse(TypedDict):
-    data: NameEnquiryData
-    responseCode: str
-    responseMessage: str
-
-class StatementTransactionItem(TypedDict):
-    account: str
-    accountName: str
-    amount: str
-    contractRef: str
-    counterparty: str
-    counterpartyBank: str
-    counterpartyBankCode: str
-    counterpartyChannel: str
-    counterpartyService: str
-    drCr: str
-    eventdate: str
-    id: str
-    logoUrl: str
-    narration: str
-    paymentRef: str
-    runningBalance: int
-    runningTotal: str
-    trnType: str
-    txnDate: str
-
-class RequestCustomerStatementResponse(TypedDict):
-    accountName: str
-    accountNumber: str
-    accountType: str
-    address: str
-    bankname: str
-    closingBalance: str
-    color: str
-    colorfade: str
-    email: str
-    endDate: str
-    logo: str
-    openingBalance: str
-    responseCode: str
-    responseMessage: str
-    sendMail: bool
-    startDate: str
-    supportemail: str
-    supportphone: str
-    totalCredit: str
-    totalDebit: str
-    transactionList: List[StatementTransactionItem]
-    transactionListString: str
-
-class FundTransferInternalResponse(TypedDict):
-    cbaReference: str
-    creditAccountBankCode: str
-    creditAccountBankName: str
-    creditAccountNumber: str
-    debitAccountNumber: str
-    reference: str
-    requestTime: str
-    responseCode: str
-    responseMessage: str
-    responseTime: str
-    totalFee: str
-    totalVat: str
-    trnAmount: str
-    trnNarration: str
-
-class FundTransferOutwardResponse(TypedDict):
-    amount: int
-    beneficiaryAccountName: str
-    beneficiaryAccountNumber: str
-    beneficiaryBankVerificationNumber: str
-    beneficiaryKYCLevel: str
-    cbaReference: str
-    channelCode: int
-    destinationInstitutionCode: str
-    nameEnquiryRef: str
-    narration: str
-    originatorAccountName: str
-    originatorAccountNumber: str
-    originatorBankVerificationNumber: str
-    originatorKYCLevel: str
-    paymentReference: str
-    responseCode: str
-    responseMessage: str
-    sessionID: str
-    totalFee: str
-    totalVat: str
-    transactionId: str
-    transactionLocation: str
-
-class GetUserInfoResponse(TypedDict):
-    accountId: int
-    accounts: List[AccountInfo]
-    address: str
-    deviceToken: str
-    privileges: List[str]
-    responseCode: str
-    responseMessage: str
-    token: str
-    userCountryCode: str
-    userDob: str
-    userEmail: str
-    userFirstName: str
-    userFullName: str
-    userGender: str
-    userId: str
-    userInviteCode: str
-    userLastName: str
-    userPhoneNumber: str
-    userReferralCode: str
-    userRewardBalance: int
-    userRoleId: int
-    userStatus: str
-    userTierId: int
-
-def generate_credentials(phone_country_code: str, phone_number: str, transaction_pin: str) -> dict:
-    signature = f"{time.time()}:chatbot"
+def generate_credentials(transaction_pin: str) -> Dict[str, str]:
+    ts = str(int(time.time()))
+    sig = base64.b64encode(f"{ts}:chatbot".encode("utf-8")).decode("utf-8")
     return {
-        "phoneCountryCode": phone_country_code,
-        "phoneNumber": phone_number,
-        "requestSignature": base64.b64encode(signature.encode()).decode(),
-        "transactionPin": transaction_pin
+        "phoneCountryCode": PHONE_COUNTRY_CODE,
+        "phoneNumber": PHONE_NUMBER,
+        "requestSignature": sig,
+        "transactionPin": transaction_pin or "",
     }
 
-def handle_response(response: requests.Response, response_model: Optional[type] = None) -> dict:
-    if response.status_code == 200:
-        data = response.json()
-        # Validate success: status code 200 and responseCode "00"
-        if isinstance(data, dict) and data.get("responseCode") != "00":
-            raise Exception(
-                f"API request failed: responseCode={data.get('responseCode')}, "
-                f"responseMessage={data.get('responseMessage', 'Unknown error')}"
-            )
-        return data
-    else:
-        raise Exception(f"HTTP request failed: {response.status_code} {response.text}")
+def _post(path: str, payload: Dict[str, Any], auth_token: Optional[str] = None) -> Dict[str, Any]:
+    url = f"{BASE_URL}{path}"
+    r = requests.post(url, json=payload, headers=_headers(auth_token), timeout=TIMEOUT)
+    try:
+        data = r.json()
+    except ValueError:
+        raise Exception(f"Finlake non-JSON response {r.status_code}: {r.text[:300]}")
+    if r.status_code != 200:
+        raise Exception(f"Finlake HTTP {r.status_code}: {data}")
+    # Common envelope check
+    if isinstance(data, dict) and data.get("responseCode") not in (None, "", "00"):
+        # Some endpoints return '00' for success
+        raise Exception(f"Finlake error responseCode={data.get('responseCode')} message={data.get('responseMessage')}")
+    return data
 
-def get_bank_list() -> BankListResponse:
-    url = f"{BASE_URL}/public/read/cts-bank"
-    payload = generate_credentials(PHONE_COUNTRY_CODE, PHONE_NUMBER, TRANSACTION_PIN)
-    headers = {
-        "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID,
-        "X-Flk-Stage": FLK_STAGE
-    }
-    response = requests.post(url, json=payload, headers=headers)
+# ---- Public endpoints (chatbot-controller) ----
 
-    return handle_response(response)
+def list_banks(transaction_pin: str) -> Dict[str, Any]:
+    payload = {"botCredentialsRequest": generate_credentials(transaction_pin)}
+    return _post("/public/read/cts-bank", payload)
 
-def fund_transfer_internal(
-    amount: int, 
-    credit_account_name: str, 
-    credit_account_number: str, 
-    debit_account_name: str, 
-    debit_account_number: str, 
-    location: str, 
-    narration: str, 
-    save_beneficiary: bool, 
-    transaction_pin: str
-) -> FundTransferInternalResponse:
-    url = f"{BASE_URL}/public/create/cts-internal-fund-transfer"
+def internal_name_enquiry(account_number: str, transaction_pin: str) -> Dict[str, Any]:
     payload = {
-        "amount": str(amount),
-        "creditAccountName": credit_account_name,
-        "creditAccountNumber": credit_account_number,
-        "debitAccountName": debit_account_name,
-        "debitAccountNumber": debit_account_number,
-        "location": location,
-        "narration": narration,
-        "saveBeneficiary": save_beneficiary,
-        "transactionPin": transaction_pin,
-        "credentials": generate_credentials(PHONE_COUNTRY_CODE, PHONE_NUMBER, TRANSACTION_PIN)
+        "botFundTransferNameEnquiryRequest": {
+            "accountNumber": account_number,
+            "credentials": generate_credentials(transaction_pin),
+        }
     }
-    headers = {
-        "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID,
-        "X-Flk-Stage": FLK_STAGE
-    }
-    response = requests.post(url, json=payload, headers=headers)
+    return _post("/public/read/cts-internal-name-enquiry", payload)
 
-    return handle_response(response)
-
-def fund_transfer_outward(
-    amount: int,
-    credit_account_name: str,
-    credit_account_number: str,
-    credit_bank_code: str,
-    credit_bank_name: str,
-    debit_account_name: str,
-    debit_account_number: str,
-    location: str,
-    name_enquiry_reference: str,
-    narration: str,
-    save_beneficiary: bool,
-    transaction_pin: str
-) -> FundTransferOutwardResponse:
-    url = f"{BASE_URL}/public/create/cts-outward-fund-transfer"
+def transaction_history_by_account(account_number: str, start_date: str, end_date: str,
+                                   page: int, page_size: int, transaction_pin: str) -> Dict[str, Any]:
     payload = {
-        "amount": str(amount),
-        "credentials": generate_credentials(PHONE_COUNTRY_CODE, PHONE_NUMBER, TRANSACTION_PIN),
-        "creditAccountName": credit_account_name,
-        "creditAccountNumber": credit_account_number,
-        "creditBankCode": credit_bank_code,
-        "creditBankName": credit_bank_name,
-        "debitAccountName": debit_account_name,
-        "debitAccountNumber": debit_account_number,
-        "location": location,
-        "nameEnquiryReference": name_enquiry_reference,
-        "narration": narration,
-        "saveBeneficiary": save_beneficiary,
-        "transactionPin": transaction_pin
+        "botTransactionHistoryRequest": {
+            "accountNumber": account_number,
+            "credentials": generate_credentials(transaction_pin),
+            "startDate": start_date,
+            "endDate": end_date,
+            "page": page,
+            "pageSize": page_size
+        }
     }
-    headers = {
-        "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID,
-        "X-Flk-Stage": FLK_STAGE
-    }
-    response = requests.post(url, json=payload, headers=headers)
+    return _post("/public/read/cts-by-account-number", payload)
 
-    return handle_response(response)
+def get_balance(account_number: str, transaction_pin: str) -> int:
+    # fetch a tiny page; balance comes back in 'account'[0]['accountBalance'] as a string
+    today = time.strftime("%Y-%m-%d")
+    # start a month back for safety
+    month_ago = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 30*24*3600))
+    data = transaction_history_by_account(account_number, month_ago, today, page=0, page_size=1,
+                                          transaction_pin=transaction_pin)
+    acct = (data.get("account") or [{}])[0]
+    bal_str = acct.get("accountBalance") or "0"
+    try:
+        # balance is a string (possibly decimal). Convert to int of NGN kobo simplified as Naira.
+        return int(float(bal_str))
+    except Exception:
+        return 0
 
-def get_customer_by_account_number(
-    account_number: str,
-    start_date: str,
-    end_date: str,
-    page: int,
-    page_size: int,
-    transaction_pin: str
-) -> CustomerByAccountNumberResponse:
-    url = f"{BASE_URL}/public/read/cts-by-account-number"
+def fund_transfer_internal(*, amount: int, credit_account_name: str, credit_account_number: str,
+                           debit_account_name: str, debit_account_number: str, location: str = "NGA",
+                           narration: str = "", save_beneficiary: bool = True,
+                           transaction_pin: str) -> Dict[str, Any]:
     payload = {
-        "accountNumber": account_number,
-        "credentials": generate_credentials(PHONE_COUNTRY_CODE, PHONE_NUMBER, transaction_pin),
-        "startDate": start_date,
-        "endDate": end_date,
-        "page": page,
-        "pageSize": page_size
+        "botFundTransferRequest": {
+            "amount": str(amount),
+            "credentials": generate_credentials(transaction_pin),
+            "creditAccountName": credit_account_name,
+            "creditAccountNumber": credit_account_number,
+            "debitAccountName": debit_account_name,
+            "debitAccountNumber": debit_account_number,
+            "location": location,
+            "narration": narration or "",
+            "saveBeneficiary": bool(save_beneficiary),
+            "transactionPin": transaction_pin,
+        }
     }
-    headers = {
-        "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID,
-        "X-Flk-Stage": FLK_STAGE
-    }
-    response = requests.post(url, json=payload, headers=headers)
+    return _post("/public/create/cts-internal-fund-transfer", payload)
 
-    return handle_response(response)
-
-def internal_name_enquiry(
-    account_number: str,
-    transaction_pin: str
-) -> InternalNameEnquiryResponse:
-    url = f"{BASE_URL}/public/read/cts-internal-name-enquiry"
+def fund_transfer_outward(*, amount: int, credit_account_name: str, credit_account_number: str,
+                          credit_bank_code: str, credit_bank_name: str,
+                          debit_account_name: str, debit_account_number: str,
+                          location: str = "NGA", name_enquiry_reference: str = "", narration: str = "",
+                          save_beneficiary: bool = True, transaction_pin: str) -> Dict[str, Any]:
     payload = {
-        "accountNumber": account_number,
-        "credentials": generate_credentials(PHONE_COUNTRY_CODE, PHONE_NUMBER, transaction_pin)
+        "botOutWardFundTransferRequest": {
+            "amount": str(amount),
+            "credentials": generate_credentials(transaction_pin),
+            "creditAccountName": credit_account_name,
+            "creditAccountNumber": credit_account_number,
+            "creditBankCode": credit_bank_code,
+            "creditBankName": credit_bank_name,
+            "debitAccountName": debit_account_name,
+            "debitAccountNumber": debit_account_number,
+            "location": location,
+            "nameEnquiryReference": name_enquiry_reference or "",
+            "narration": narration or "",
+            "saveBeneficiary": bool(save_beneficiary),
+            "transactionPin": transaction_pin,
+        }
     }
-    headers = {
-        "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID,
-        "X-Flk-Stage": FLK_STAGE
-    }
-    response = requests.post(url, json=payload, headers=headers)
-
-    return handle_response(response)
-
-def get_user_info(transaction_pin: str) -> GetUserInfoResponse:
-    url = f"{BASE_URL}/public/read/cts-user-info"
-    payload = generate_credentials(PHONE_COUNTRY_CODE, PHONE_NUMBER, transaction_pin)
-    headers = {
-        "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID,
-        "X-Flk-Stage": FLK_STAGE
-    }
-    response = requests.post(url, json=payload, headers=headers)
-
-    return handle_response(response)
-
-def request_customer_statement(
-    account_number: str,
-    email: str,
-    start_date: str,
-    end_date: str,
-    transaction_pin: str
-) -> RequestCustomerStatementResponse:
-    url = f"{BASE_URL}/public/read/cts-request-statement"
-    payload = {
-        "accountNumber": account_number,
-        "credentials": generate_credentials(PHONE_COUNTRY_CODE, PHONE_NUMBER, transaction_pin),
-        "email": email,
-        "startDate": start_date,
-        "endDate": end_date
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID,
-        "X-Flk-Stage": FLK_STAGE
-    }
-    response = requests.post(url, json=payload, headers=headers)
-
-    return handle_response(response)
+    return _post("/public/create/cts-outward-fund-transfer", payload)
