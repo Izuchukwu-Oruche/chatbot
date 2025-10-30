@@ -8,7 +8,10 @@ def llm_parse(user_text: str) -> dict:
         messages=[{"role":"user","content":[{"text": user_text}]}],
         inferenceConfig={"maxTokens": 800, "temperature": 0.2, "topP": 0.9},
     )
-    out = resp["output"]["message"]["content"][0]["text"].strip()
+    content = resp.get("output",{}).get("message",{}).get("content",[])
+    if not content or "text" not in content[0]:
+        raise RuntimeError(f"LLM response missing text: {resp}")
+    out = content[0]["text"].strip()
     out = re.sub(r"^```(?:json)?\s*|\s*```$", "", out, flags=re.DOTALL).strip()
     out = out.replace("\u200b","")
     try:

@@ -29,17 +29,24 @@ BANK_API_TOKEN  = os.getenv("BANK_API_TOKEN","")
 # --- System Prompt loading order: ENV -> local file -> S3 ---
 SYSTEM_PROMPT = os.environ.get("SYSTEM_PROMPT")
 if not SYSTEM_PROMPT:
+    # Try local file first
     try:
         with open("system_prompt.txt","r",encoding="utf-8") as f:
             SYSTEM_PROMPT = f.read()
     except Exception:
-        s3 = boto3.client("s3")
-        params = {
-            "Bucket": os.environ["CFG_BUCKET"],
-            "Key": os.environ["CFG_KEY"],
-        }
-        obj = s3.get_object(**params)
-        SYSTEM_PROMPT = obj["Body"].read().decode("utf-8")
+        # Fallback to S3 if configured, else last-resort default
+        try:
+            bucket = os.getenv("CFG_BUCKET")
+            key = os.getenv("CFG_KEY")
+            if bucket and key:
+                s3 = boto3.client("s3")
+                obj = s3.get_object(Bucket=bucket, Key=key)
+                SYSTEM_PROMPT = obj["Body"].read().decode("utf-8")
+            else:
+                SYSTEM_PROMPT = SYSTEM_PROMPT or "You are a multilingual Nigerian banking NLU. Output only strict JSON."
+        except Exception:
+            SYSTEM_PROMPT = SYSTEM_PROMPT or "You are a multilingual Nigerian banking NLU. Output only strict JSON."
+
 
 # --- AWS clients ---
 dynamodb = boto3.resource("dynamodb")

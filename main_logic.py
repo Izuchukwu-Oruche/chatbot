@@ -95,8 +95,7 @@ def _next_missing(intent: str, slots: dict, suggested_missing: list) -> str:
     if intent == "check_balance":
         req = ["source_account_number", "pin"]
     elif intent == "transfer":
-        req = ["amount", "recipient_name", "destination_account_number",
-               "destination_bank", "source_account_number", "source_account_name", "pin"]
+        req = ["amount", "recipient_name", "destination_account_number", "source_account_number", "source_account_name", "pin"]
     else:
         return suggested_missing[0] if suggested_missing else "amount"
     for s in req:
