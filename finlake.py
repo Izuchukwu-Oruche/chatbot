@@ -1,7 +1,7 @@
 import time, base64
 import requests
 from typing import Optional, Dict, Any
-from config import ACCOUNT_ID, FLK_STAGE, PHONE_COUNTRY_CODE, PHONE_NUMBER
+# from config import ACCOUNT_ID, FLK_STAGE, PHONE_COUNTRY_CODE, PHONE_NUMBER
 
 BASE_URL = "https://api-dev.finlake.tech/mobility"
 TIMEOUT = 15
@@ -9,19 +9,19 @@ TIMEOUT = 15
 def _headers(auth_token: Optional[str] = None) -> Dict[str, str]:
     h = {
         "Content-Type": "application/json",
-        "X-Account-Id": ACCOUNT_ID or "",
-        "X-Flk-Stage": FLK_STAGE or "dev",
+        "X-Account-Id": "1000000022",
+        "X-Flk-Stage": "dev",
     }
     if auth_token:
         h["Authorization"] = f"Bearer {auth_token}"
     return h
 
 def generate_credentials(transaction_pin: str) -> Dict[str, str]:
-    ts = str(int(time.time()))
-    sig = base64.b64encode(f"{ts}:chatbot".encode("utf-8")).decode("utf-8")
+    signature = f"{int(time.time())}:chatbot"
+    sig = base64.b64encode(signature.encode()).decode()
     return {
-        "phoneCountryCode": PHONE_COUNTRY_CODE,
-        "phoneNumber": PHONE_NUMBER,
+        "phoneCountryCode": "234",
+        "phoneNumber": "9049929256",
         "requestSignature": sig,
         "transactionPin": transaction_pin or "",
     }
@@ -37,7 +37,7 @@ def _post(path: str, payload: Dict[str, Any], auth_token: Optional[str] = None) 
         raise Exception(f"Finlake HTTP {r.status_code}: {data}")
     # Common envelope check
     if isinstance(data, dict) and data.get("responseCode") not in (None, "", "00"):
-        # Some endpoints return '00' for success
+        # Some endpoints return '00' foress succ
         raise Exception(f"Finlake error responseCode={data.get('responseCode')} message={data.get('responseMessage')}")
     return data
 
@@ -59,14 +59,12 @@ def internal_name_enquiry(account_number: str, transaction_pin: str) -> Dict[str
 def transaction_history_by_account(account_number: str, start_date: str, end_date: str,
                                    page: int, page_size: int, transaction_pin: str) -> Dict[str, Any]:
     payload = {
-        "botTransactionHistoryRequest": {
-            "accountNumber": account_number,
-            "credentials": generate_credentials(transaction_pin),
-            "startDate": start_date,
-            "endDate": end_date,
-            "page": page,
-            "pageSize": page_size
-        }
+        "accountNumber": account_number,
+        "credentials": generate_credentials(transaction_pin),
+        "startDate": start_date,
+        "endDate": end_date,
+        "page": page,
+        "pageSize": page_size
     }
     return _post("/public/read/cts-by-account-number", payload)
 
@@ -77,6 +75,8 @@ def get_balance(account_number: str, transaction_pin: str) -> int:
     month_ago = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 30*24*3600))
     data = transaction_history_by_account(account_number, month_ago, today, page=0, page_size=1,
                                           transaction_pin=transaction_pin)
+    
+    print(data)
     acct = (data.get("account") or [{}])[0]
     bal_str = acct.get("accountBalance") or "0"
     try:
