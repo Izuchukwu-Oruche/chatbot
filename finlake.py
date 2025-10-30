@@ -44,7 +44,7 @@ def _post(path: str, payload: Dict[str, Any], auth_token: Optional[str] = None) 
 # ---- Public endpoints (chatbot-controller) ----
 
 def list_banks(transaction_pin: str) -> Dict[str, Any]:
-    payload = {"botCredentialsRequest": generate_credentials(transaction_pin)}
+    payload = generate_credentials(transaction_pin)
     return _post("/public/read/cts-bank", payload)
 
 def internal_name_enquiry(account_number: str, transaction_pin: str) -> Dict[str, Any]:
