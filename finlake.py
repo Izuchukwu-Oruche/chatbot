@@ -67,22 +67,25 @@ def transaction_history_by_account(account_number: str, start_date: str, end_dat
     }
     return _post("/public/read/cts-by-account-number", payload)
 
-def get_balance(account_number: str, transaction_pin: str) -> int:
-    # fetch a tiny page; balance comes back in 'account'[0]['accountBalance'] as a string
+def get_balance(account_number: str, transaction_pin: str):
+    """
+    Returns Decimal-like string (2dp) for the current balance.
+    We DO NOT coerce to int; we preserve the decimal part.
+    """
+    from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
     today = time.strftime("%Y-%m-%d")
-    # start a month back for safety
     month_ago = time.strftime("%Y-%m-%d", time.gmtime(time.time() - 30*24*3600))
     data = transaction_history_by_account(account_number, month_ago, today, page=1, page_size=1,
                                           transaction_pin=transaction_pin)
-    
-    print(data)
     acct = (data.get("account") or [{}])[0]
-    bal_str = acct.get("accountBalance") or "0"
+    bal_str = str(acct.get("accountBalance") or "0")
     try:
-        # balance is a string (possibly decimal). Convert to int of NGN kobo simplified as Naira.
-        return int(float(bal_str))
-    except Exception:
-        return 0
+        dec = Decimal(bal_str)
+        dec = dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return str(dec)
+    except (InvalidOperation, Exception):
+        return "0.00"
+
 
 def fund_transfer_internal(*, amount: int, credit_account_name: str, credit_account_number: str,
                            debit_account_name: str, debit_account_number: str, location: str = "NGA",
